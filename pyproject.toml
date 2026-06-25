@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamis"
+version = "0.0.1"
+description = "Physics-informed ECU calibration analysis & optimization pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+# Added when we need autodiff for calibration/optimization (M3+)
+ml = ["torch>=2.1", "pydantic>=2.5"]
+dev = ["pytest>=7.4", "ruff>=0.3", "mypy>=1.8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

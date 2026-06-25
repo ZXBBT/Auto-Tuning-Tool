@@ -16,6 +16,9 @@ data/interim/
 data/processed/
 *.bin            # ECU calibration binaries (may be large/OEM-copyrighted) — force-add if intended
 
+# --- Generated outputs (plots, reports) ---
+outputs/
+
 # --- Notebooks ---
 .ipynb_checkpoints/
 
