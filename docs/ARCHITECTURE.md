@@ -142,6 +142,7 @@ extrapolate sensibly.
 | D6 | Output mode | **Advisory + confidence; no auto-flash in v1** | Manages sim-to-real risk and legal/safety exposure. |
 | D7 | Real-time scope | **Offline log analysis first; live/streaming on-vehicle as a separate later track** | Heavy physics+ML is feasible offline; live needs an embedded low-latency redesign. |
 | D8 | Diagnostics | **First-class deliverable — own module + milestone, before the optimizer** | Directly serves the "evaluate bottlenecks" goal; ships value and trust early. |
+| D9 | v1 platform | **EA888 (MK7 GTI/Golf R)** | M0.5 scan: richest, most standardized log channel set (air-mass/stroke, AFR + setpoint, per-cyl knock retard) for model calibration. N55/datazap kept as secondary. See `data-feasibility.md`. |
 
 ADRs for any later reversals go in `docs/decisions/`.
 
@@ -588,8 +589,8 @@ project/
 
 ## 16. Open questions
 
-1. **Which platform first** — N55 vs EA888 — decided by **whose WOT-log dataset we can
-   assemble most cleanly** in the M0.5 spike.
+1. ~~Which platform first~~ — **RESOLVED (D9): EA888 (MK7 GTI/Golf R)** via the M0.5 scan
+   (`data-feasibility.md`).
 2. **Fuel assumptions** — which octane / ethanol-content cases to model first (e.g. 93
    pump vs E30/E85)? Strongly affects the knock constraint.
 3. **Real-log sources** — which forums/dyno datasets/loggers, and their terms of use.

@@ -29,7 +29,7 @@ targets **steady-state peak power** on **BMW N55 / VAG EA888**.
 | Simulator      | Differentiable Python mean-value engine model (gray-box)            |
 | Model          | Physics-informed forward model, **inverted via constrained optimization** |
 | Objective      | Steady-state **peak power** (WOT)                                    |
-| Platforms      | BMW N55, VAG EA888 (whichever WOT dataset is richest first)          |
+| Platforms      | **VAG EA888 (MK7 GTI/Golf R)** — v1 target; N55 secondary           |
 | Output         | **Advisory** map-change recommendations + confidence (no auto-flash) |
 
 ## Intended use & boundaries
