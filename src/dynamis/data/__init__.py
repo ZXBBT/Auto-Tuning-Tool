@@ -1,5 +1,6 @@
 """Data layer (M1): ingest heterogeneous ECU logs into one canonical schema + QA."""
 
+from .corpus import CorpusMeta, add_log, load_corpus, validate_metadata
 from .ingest import ingest_dataframe, load_csv
 from .mapping import COBB_EA888, SourceProfile
 from .qa import detect_wot_segments, qa_report
@@ -16,4 +17,8 @@ __all__ = [
     "CANONICAL_CHANNELS",
     "LogFrame",
     "generate_cobb_wot_log",
+    "CorpusMeta",
+    "add_log",
+    "load_corpus",
+    "validate_metadata",
 ]

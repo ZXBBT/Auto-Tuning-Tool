@@ -1,0 +1,43 @@
+# Metadata template for a curated corpus log.
+# Copy this, fill it in next to the downloaded/exported CSV, then run:
+#   PYTHONPATH=src python3 scripts/add_log_to_corpus.py <log.csv> <this_file.yaml>
+#
+# Fields marked CRITICAL materially change the physics — leaving them blank degrades
+# calibration. Don't omit them by default; record "stock"/known values explicitly.
+
+entry_id: ea888_example_01        # unique, filesystem-safe id for this log
+
+source:
+  type: build_thread              # own_car | build_thread | dataset | donation
+  url: ""                         # where it came from (thread/post/dataset)
+  retrieved: ""                   # YYYY-MM-DD
+  consent: ""                     # license / permission / "self" — how you may use it
+
+vehicle:
+  platform: EA888 Gen3
+  model: ""                       # e.g. MK7 GTI, Golf R, Audi S3
+  year: ""
+  turbo: ""                       # CRITICAL: IS20 | IS38 | hybrid
+  transmission: ""                # DSG | manual
+
+fuel:
+  octane_ron: null                # CRITICAL: e.g. 98 (RON) or convert AKI->RON
+  ethanol_pct: null               # CRITICAL if running E30/E85
+  brand: ""
+
+mods:                             # CRITICAL: list every relevant mod, or confirm stock
+  - stock                         # e.g. intake, downpipe, intercooler, injectors, HPFP
+
+health_notes: ""                  # misfires, leaks, age — anything affecting validity
+
+ambient:
+  temp_c: null
+  pressure_kpa: null
+  altitude_m: null
+
+logging:
+  tool: COBB Accessport           # COBB Accessport | MHD | EcuTek | ...
+  tool_version: ""
+  units_note: ""                  # note any non-default units in the raw file
+
+notes: ""
