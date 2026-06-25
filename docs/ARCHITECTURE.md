@@ -595,7 +595,9 @@ project/
    pump vs E30/E85)? Strongly affects the knock constraint.
 3. **Real-log sources** — which forums/dyno datasets/loggers, and their terms of use.
 4. **Decision variables in v1** — spark + boost + λ only, or include cam/VANOS?
-5. **Compute budget** — local GPU vs cloud for calibration/ensembles.
+5. ~~Compute budget~~ — **RESOLVED: local RTX 5070 Ti (Blackwell) available** for
+   calibration / ensembles / optimization. *Heads-up:* Blackwell (sm_120) needs a
+   **CUDA 12.8+ PyTorch build** — pin that at the M3 torch install.
 6. **Validation partner** — is a dyno or a known-good reference tune available to check
    M5/M6 output against? (Drives the §9.5 back-test.)
 
