@@ -1,0 +1,37 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# --- Data (large / proprietary; not versioned by default) ---
+data/raw/
+data/interim/
+data/processed/
+*.bin            # ECU calibration binaries (may be large/OEM-copyrighted) — force-add if intended
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- Experiment tracking / model artifacts ---
+mlruns/
+wandb/
+*.ckpt
+*.pt
+*.pth
+
+# --- Env / secrets ---
+.env
+*.env
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+*.swp
