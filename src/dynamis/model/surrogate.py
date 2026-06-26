@@ -68,3 +68,18 @@ class Surrogate:
         xt = torch.tensor(x, dtype=torch.float32, device=self.device)
         y = self.model(xt).cpu().numpy()
         return self.ys.inverse(y)
+
+    def forward_tensor(self, x: torch.Tensor) -> torch.Tensor:
+        """Differentiable forward (standardize -> MLP -> inverse), original units.
+
+        Unlike predict(), this keeps the autograd graph so callers can backprop to the
+        inputs `x` (used by the optimizer). `x` shape: (batch, n_features), raw units.
+        """
+        assert self.model is not None, "call fit() first"
+        dev = self.device
+        xm = torch.as_tensor(self.xs.mean, dtype=torch.float32, device=dev)
+        xs = torch.as_tensor(self.xs.std, dtype=torch.float32, device=dev)
+        ym = torch.as_tensor(self.ys.mean, dtype=torch.float32, device=dev)
+        ys = torch.as_tensor(self.ys.std, dtype=torch.float32, device=dev)
+        yn = self.model((x - xm) / xs)
+        return yn * ys + ym

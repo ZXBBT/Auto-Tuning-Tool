@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import torch
 
 from .data import FEATURES, TARGETS
 from .surrogate import Surrogate
@@ -32,3 +33,8 @@ class DeepEnsemble:
         """Return (mean, std), each shape (n_rows, n_targets), in original units."""
         preds = np.stack([m.predict(df) for m in self.members], axis=0)  # (k, n, t)
         return preds.mean(axis=0), preds.std(axis=0)
+
+    def forward_tensor(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Differentiable (mean, std) over members; keeps the autograd graph."""
+        preds = torch.stack([m.forward_tensor(x) for m in self.members], dim=0)  # (k, batch, t)
+        return preds.mean(dim=0), preds.std(dim=0)
