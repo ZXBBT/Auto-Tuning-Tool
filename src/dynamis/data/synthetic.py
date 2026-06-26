@@ -35,6 +35,7 @@ def generate_cobb_wot_log(
     rpm_end: float = 6800.0,
     pull_s: float = 8.0,
     lead_s: float = 2.0,
+    spark_offset_deg: float = 0.0,  # <0 simulates a conservative tune (timing left on table)
     seed: int = 0,
 ) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
@@ -60,7 +61,7 @@ def generate_cobb_wot_log(
                 "Air Mass Intake Manifold Per Stroke": round(airmass_g, 4),
                 "AFR": round(lam * afr_stoich + rng.normal(0, 0.05), 2),
                 "AFR Set Point": round(lam * afr_stoich, 2),
-                "Ignition Timing Final": round(r.spark_deg, 1),
+                "Ignition Timing Final": round(max(2.0, r.spark_deg + spark_offset_deg), 1),
                 "Knock Retard Cylinder 1": round(knock if rng.random() < 0.5 else 0.0, 1),
                 "Knock Retard Cylinder 2": round(knock if rng.random() < 0.4 else 0.0, 1),
                 "Knock Retard Cylinder 3": round(knock if rng.random() < 0.4 else 0.0, 1),
@@ -88,7 +89,11 @@ def generate_cobb_wot_log(
         charge_c = 38.0 + frac * 14.0 + rng.normal(0, 0.4)
         op = OperatingPoint(rpm, P_ATM + boost * _PA_PER_PSI, charge_c + 273.15, lam=lam, octane=octane)
         r = simulate_wot(op, engine)
-        knock = float(max(0.0, rng.normal(0.8, 0.6))) if (r.knock_limited and r.knock_margin < 0.06) else 0.0
+        knock = (
+            float(max(0.0, rng.normal(0.8, 0.6)))
+            if (r.knock_limited and r.knock_margin < 0.06 and spark_offset_deg > -1.5)
+            else 0.0
+        )
         add(rpm=rpm, boost_psi=boost, charge_c=charge_c, pedal=100, gear=3, knock=knock)
 
     return pd.DataFrame(rows)
