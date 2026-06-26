@@ -32,6 +32,18 @@ targets **steady-state peak power** on **BMW N55 / VAG EA888**.
 | Platforms      | **VAG EA888 (MK7 GTI/Golf R)** — v1 target; N55 secondary           |
 | Output         | **Advisory** map-change recommendations + confidence (no auto-flash) |
 
+## Development
+
+Python 3.10+, isolated venv. PyTorch uses the **CUDA 12.8** wheel (Blackwell / RTX 50-series; CPU-only also fine).
+
+```bash
+python3 -m venv .venv --without-pip                       # system python may lack ensurepip
+curl -fsSL https://bootstrap.pypa.io/get-pip.py | .venv/bin/python
+.venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu128   # omit for CPU-only
+.venv/bin/pip install -e ".[ml,dev]"
+.venv/bin/python -m pytest -q
+```
+
 ## Intended use & boundaries
 
 Off-road / track / dyno / research use. Recommendations are advisory and require
