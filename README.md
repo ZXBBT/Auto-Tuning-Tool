@@ -9,8 +9,11 @@ by hard safety limits and kept human-in-the-loop.
 
 ## Status
 
-🚧 **Pre-implementation.** This repository currently contains the **architecture and
-design only** — no code yet. Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+🟢 **v1 pipeline running on simulated data.** The full spine is built and tested —
+physics → data → calibration → surrogate (+uncertainty) → constrained optimizer.
+Training currently runs on **simulator-generated** data; calibrating against real
+EA888 logs (the M3 anchor) is the remaining step to make outputs trustworthy.
+Design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## The one-paragraph idea
 
@@ -19,7 +22,7 @@ learn tuning end-to-end from scraped logs. Instead we build a **differentiable, 
 engine model** (physics for structure), **anchor it to abundant real wide-open-throttle
 logs** (data for the residuals), and then **optimize *through* that model** under safety
 constraints to find calibration changes that increase performance. The first version
-targets **steady-state peak power** on **BMW N55 / VAG EA888**.
+targets **steady-state peak power** on **VAG EA888 (MK7 GTI/Golf R)**.
 
 ## Scope at a glance (v1)
 
@@ -43,6 +46,40 @@ curl -fsSL https://bootstrap.pypa.io/get-pip.py | .venv/bin/python
 .venv/bin/pip install -e ".[ml,dev]"
 .venv/bin/python -m pytest -q
 ```
+
+## Usage
+
+All commands assume the venv above (the project is installed editable there, so no
+`PYTHONPATH` is needed). Stages that don't need PyTorch (`make_synthetic_log`,
+`calibrate_demo`, `add_log_to_corpus`) also run with `PYTHONPATH=src python3 <script>`.
+
+> Training currently uses **simulator-generated** data (simulator-first). It validates the
+> machinery and is *not* a substitute for real-data calibration — see Status.
+
+```bash
+# 1. Generate a synthetic COBB-style WOT log, then ingest + QA it
+.venv/bin/python scripts/make_synthetic_log.py
+
+# 2. Calibrate the physics model (M3): fit theta_phys; parameter-recovery on sim data
+.venv/bin/python scripts/calibrate_demo.py
+
+# 3. Train the surrogate model (M4): NN deep-ensemble + uncertainty (uses the GPU if present)
+.venv/bin/python scripts/train_surrogate.py
+
+# 4. Optimize a tune (M6): maximize power within the safety limits
+.venv/bin/python scripts/optimize_demo.py
+
+# 5. Add a real log to the curated corpus (fill the metadata template first)
+cp configs/metadata_template.yaml mylog.yaml          # then edit: fuel / mods / source
+.venv/bin/python scripts/add_log_to_corpus.py mylog.csv mylog.yaml
+
+# Run the test suite
+.venv/bin/python -m pytest -q
+```
+
+`train_surrogate.py` reports held-out accuracy and how uncertainty grows out-of-domain;
+`optimize_demo.py` prints the recommended spark/boost/λ across the RPM sweep, the active
+safety limit at each point, and the predicted gain over a baseline.
 
 ## Intended use & boundaries
 
