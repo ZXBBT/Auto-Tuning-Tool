@@ -174,7 +174,7 @@ def add_log(
 
 def _update_index(corpus_dir: str, meta: CorpusMeta, qa: dict) -> None:
     index_path = Path(corpus_dir) / "index.yaml"
-    index = []
+    index: list = []
     if index_path.exists():
         index = yaml.safe_load(index_path.read_text()) or []
     index = [e for e in index if e.get("entry_id") != meta.entry_id]

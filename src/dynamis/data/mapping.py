@@ -9,7 +9,7 @@ the aliases/units without touching ingestion logic.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 def normalize_name(name: str) -> str:

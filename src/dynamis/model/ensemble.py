@@ -37,9 +37,12 @@ class DeepEnsemble:
     def forward_tensor(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Differentiable (mean, std) over members; keeps the autograd graph."""
         preds = torch.stack([m.forward_tensor(x) for m in self.members], dim=0)  # (k, batch, t)
-        return preds.mean(dim=0), preds.std(dim=0)
+        # population std (unbiased=False) matches numpy predict() and avoids nan at k=1
+        return preds.mean(dim=0), preds.std(dim=0, unbiased=False)
 
     def save(self, path: str) -> None:
+        if not self.members or any(m.model is None for m in self.members):
+            raise RuntimeError("fit the ensemble before saving")
         blob = {
             "k": self.k,
             "features": self.features,

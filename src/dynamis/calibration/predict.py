@@ -33,7 +33,7 @@ def predict_cheap(eng: EngineParams, rpm, p_im_pa, charge_temp_k, lam, octane, s
     }
 
 
-def predict_knock_limited_deg(eng: EngineParams, rpm, p_im_pa, charge_temp_k, lam, octane, **_) -> float:
+def predict_knock_limited_deg(eng: EngineParams, rpm, p_im_pa, charge_temp_k, lam, octane) -> float:
     t_knock = charge_temp_k - charge_cooling_delta_T(lam, eng)
     eta_vol = volumetric_efficiency(rpm, p_im_pa, eng)
     m_dot_air = air_mass_flow(rpm, p_im_pa, charge_temp_k, eta_vol, eng)

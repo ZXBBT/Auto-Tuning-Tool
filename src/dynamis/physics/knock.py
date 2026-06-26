@@ -24,8 +24,8 @@ def cylinder_volume(theta_deg: np.ndarray, params: EngineParams) -> np.ndarray:
     """Slider-crank cylinder volume [m^3] at crank angle theta [deg ATDC firing]."""
     th = np.radians(theta_deg)
     r = params.crank_radius_m
-    l = params.conrod_m
-    x = r * (1.0 - np.cos(th)) + l * (1.0 - np.sqrt(1.0 - (r / l) ** 2 * np.sin(th) ** 2))
+    rod = params.conrod_m
+    x = r * (1.0 - np.cos(th)) + rod * (1.0 - np.sqrt(1.0 - (r / rod) ** 2 * np.sin(th) ** 2))
     return params.clearance_volume_m3 + params.piston_area_m2 * x
 
 
