@@ -49,37 +49,35 @@ curl -fsSL https://bootstrap.pypa.io/get-pip.py | .venv/bin/python
 
 ## Usage
 
-All commands assume the venv above (the project is installed editable there, so no
-`PYTHONPATH` is needed). Stages that don't need PyTorch (`make_synthetic_log`,
-`calibrate_demo`, `add_log_to_corpus`) also run with `PYTHONPATH=src python3 <script>`.
+After the install above, the `dynamis` CLI is available in the venv. `train`/`optimize`
+import PyTorch lazily; `ingest`/`diagnose`/`add-log` don't need it.
 
-> Training currently uses **simulator-generated** data (simulator-first). It validates the
-> machinery and is *not* a substitute for real-data calibration — see Status.
+> Training/optimization currently use **simulator-generated** data (simulator-first). They
+> validate the machinery and are *not* a substitute for real-data calibration — see Status.
 
 ```bash
-# 1. Generate a synthetic COBB-style WOT log, then ingest + QA it
-.venv/bin/python scripts/make_synthetic_log.py
+# generate a synthetic COBB-style WOT log to try the tool
+# (--spark-offset -4 leaves timing on the table; omit for an "optimal" tune)
+.venv/bin/dynamis make-synthetic --out data/synthetic/demo.csv --spark-offset -4
 
-# 2. Calibrate the physics model (M3): fit theta_phys; parameter-recovery on sim data
-.venv/bin/python scripts/calibrate_demo.py
+# ingest + QA a log   /   diagnose it for bottlenecks
+.venv/bin/dynamis ingest   data/synthetic/demo.csv
+.venv/bin/dynamis diagnose data/synthetic/demo.csv
 
-# 3. Train the surrogate model (M4): NN deep-ensemble + uncertainty (uses the GPU if present)
-.venv/bin/python scripts/train_surrogate.py
+# train the surrogate once (saved), then optimize a tune from it
+.venv/bin/dynamis train    --out models/surrogate.pt
+.venv/bin/dynamis optimize --model models/surrogate.pt --boost-max 1.8 --knock-margin 0.10
 
-# 4. Optimize a tune (M6): maximize power within the safety limits
-.venv/bin/python scripts/optimize_demo.py
+# add a real log to the curated corpus
+cp configs/metadata_template.yaml mylog.yaml          # fill in fuel / mods / source
+.venv/bin/dynamis add-log mylog.csv mylog.yaml
 
-# 5. Add a real log to the curated corpus (fill the metadata template first)
-cp configs/metadata_template.yaml mylog.yaml          # then edit: fuel / mods / source
-.venv/bin/python scripts/add_log_to_corpus.py mylog.csv mylog.yaml
-
-# Run the test suite
-.venv/bin/python -m pytest -q
+.venv/bin/dynamis --help                              # all commands
+.venv/bin/python -m pytest -q                         # tests
 ```
 
-`train_surrogate.py` reports held-out accuracy and how uncertainty grows out-of-domain;
-`optimize_demo.py` prints the recommended spark/boost/λ across the RPM sweep, the active
-safety limit at each point, and the predicted gain over a baseline.
+The standalone `scripts/*.py` demos (e.g. `calibrate_demo.py`, `optimize_demo.py`) remain
+for stage-by-stage exploration and also run with `PYTHONPATH=src python3 <script>`.
 
 ## Example — optimizer output
 

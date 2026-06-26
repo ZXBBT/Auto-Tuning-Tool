@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 from .data import FEATURES, TARGETS
-from .surrogate import Surrogate
+from .surrogate import MLP, Surrogate
 
 
 class DeepEnsemble:
@@ -38,3 +38,32 @@ class DeepEnsemble:
         """Differentiable (mean, std) over members; keeps the autograd graph."""
         preds = torch.stack([m.forward_tensor(x) for m in self.members], dim=0)  # (k, batch, t)
         return preds.mean(dim=0), preds.std(dim=0)
+
+    def save(self, path: str) -> None:
+        blob = {
+            "k": self.k,
+            "features": self.features,
+            "targets": self.targets,
+            "hidden": self.hidden,
+            "members": [
+                {"state": m.model.state_dict(), "xs": (m.xs.mean, m.xs.std), "ys": (m.ys.mean, m.ys.std)}
+                for m in self.members
+            ],
+        }
+        torch.save(blob, path)
+
+    @classmethod
+    def load(cls, path: str, device: str | None = None) -> "DeepEnsemble":
+        blob = torch.load(path, map_location=device or "cpu", weights_only=False)
+        ens = cls(k=blob["k"], features=blob["features"], targets=blob["targets"], hidden=blob["hidden"], device=device)
+        members = []
+        for md in blob["members"]:
+            s = Surrogate(blob["features"], blob["targets"], tuple(blob["hidden"]), device)
+            s.model = MLP(len(blob["features"]), len(blob["targets"]), tuple(blob["hidden"])).to(s.device)
+            s.model.load_state_dict(md["state"])
+            s.model.eval()
+            s.xs.mean, s.xs.std = md["xs"]
+            s.ys.mean, s.ys.std = md["ys"]
+            members.append(s)
+        ens.members = members
+        return ens

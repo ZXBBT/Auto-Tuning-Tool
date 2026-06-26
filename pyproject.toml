@@ -13,12 +13,16 @@ dependencies = [
     "pandas>=2.0",
     "matplotlib>=3.7",
     "pyyaml>=6.0",
+    "typer>=0.12",
 ]
 
 [project.optional-dependencies]
 # Added when we need autodiff for calibration/optimization (M3+)
 ml = ["torch>=2.1", "pydantic>=2.5"]
 dev = ["pytest>=7.4", "ruff>=0.3", "mypy>=1.8"]
+
+[project.scripts]
+dynamis = "dynamis.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
