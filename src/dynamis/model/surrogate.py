@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 import torch
@@ -41,7 +43,14 @@ class Surrogate:
         self.ys = Standardizer()
         self.model: MLP | None = None
 
-    def fit(self, df: pd.DataFrame, epochs: int = 500, lr: float = 1e-3, seed: int = 0) -> "Surrogate":
+    def fit(
+        self,
+        df: pd.DataFrame,
+        epochs: int = 500,
+        lr: float = 1e-3,
+        seed: int = 0,
+        progress: Callable[[int, int, float], None] | None = None,
+    ) -> "Surrogate":
         torch.manual_seed(seed)
         x = self.xs.fit_transform(df[self.features].to_numpy(dtype=float))
         y = self.ys.fit_transform(df[self.targets].to_numpy(dtype=float))
@@ -52,11 +61,15 @@ class Surrogate:
         opt = torch.optim.Adam(self.model.parameters(), lr=lr)
         loss_fn = nn.MSELoss()
         self.model.train()
-        for _ in range(epochs):
+        # only sync the loss off-device on reported steps (a GPU sync per epoch is wasteful)
+        stride = max(1, epochs // 200)
+        for e in range(epochs):
             opt.zero_grad()
             loss = loss_fn(self.model(xt), yt)
             loss.backward()
             opt.step()
+            if progress and (e % stride == 0 or e + 1 == epochs):
+                progress(e + 1, epochs, float(loss.detach()))
         return self
 
     @torch.no_grad()

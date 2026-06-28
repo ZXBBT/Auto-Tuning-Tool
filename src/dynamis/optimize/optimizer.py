@@ -10,6 +10,7 @@ surrogate to the inputs.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -53,6 +54,7 @@ def optimize_sweep(
     steps: int = 600,
     lr: float = 0.05,
     baseline=(12.0, 1.0, 0.92),  # (spark_deg, boost_bar, lambda) reference calibration
+    progress: Callable[[int, int, dict], None] | None = None,
 ) -> TuneResult:
     limits = limits or SafetyLimits()
     dev = ensemble.members[0].device
@@ -74,7 +76,8 @@ def optimize_sweep(
 
     theta = torch.zeros(n, 3, device=dev, requires_grad=True)
     opt = torch.optim.Adam([theta], lr=lr)
-    for _ in range(steps):
+    stride = max(1, steps // 200)
+    for step in range(steps):
         opt.zero_grad()
         dec = lo + (hi - lo) * torch.sigmoid(theta)
         mean, std = ensemble.forward_tensor(features(dec))
@@ -86,6 +89,8 @@ def optimize_sweep(
         loss = (-torque / 100.0 + 8.0 * penalty + 80.0 * penalty.pow(2)).mean()
         loss.backward()
         opt.step()
+        if progress and (step % stride == 0 or step + 1 == steps):
+            progress(step + 1, steps, {"loss": float(loss.detach())})
 
     with torch.no_grad():
         dec = lo + (hi - lo) * torch.sigmoid(theta)

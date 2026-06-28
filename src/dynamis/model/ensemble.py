@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 import torch
@@ -21,11 +23,22 @@ class DeepEnsemble:
         self.device = device
         self.members: list[Surrogate] = []
 
-    def fit(self, df: pd.DataFrame, epochs: int = 500, lr: float = 1e-3) -> "DeepEnsemble":
+    def fit(
+        self,
+        df: pd.DataFrame,
+        epochs: int = 500,
+        lr: float = 1e-3,
+        progress: Callable[[int, int, dict], None] | None = None,
+    ) -> "DeepEnsemble":
         self.members = []
+        total = self.k * epochs
         for i in range(self.k):
+            member_cb = None
+            if progress:
+                def member_cb(e, ep, loss, i=i):
+                    progress(i * epochs + e, total, {"member": f"{i + 1}/{self.k}", "loss": loss})
             s = Surrogate(self.features, self.targets, self.hidden, self.device)
-            s.fit(df, epochs=epochs, lr=lr, seed=i)
+            s.fit(df, epochs=epochs, lr=lr, seed=i, progress=member_cb)
             self.members.append(s)
         return self
 

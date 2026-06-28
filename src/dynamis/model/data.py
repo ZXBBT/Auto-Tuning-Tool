@@ -6,6 +6,8 @@ Samples operating points + calibration over their ranges and labels them with th
 
 from __future__ import annotations
 
+from typing import Callable
+
 import numpy as np
 import pandas as pd
 
@@ -79,16 +81,29 @@ def _knock_margin(eng: EngineParams, rpm, p_im, t_c, lam, octane, spark) -> floa
     return max(0.0, 1.0 - integral)
 
 
-def simulate_targets(df: pd.DataFrame, engine: EngineParams = EA888_GEN3) -> pd.DataFrame:
+def simulate_targets(
+    df: pd.DataFrame,
+    engine: EngineParams = EA888_GEN3,
+    progress: Callable[[int, int, dict], None] | None = None,
+) -> pd.DataFrame:
     out = df.copy()
     torque, margin = [], []
-    for r in df.itertuples():
+    total = len(df)
+    stride = max(1, total // 200)
+    for i, r in enumerate(df.itertuples()):
         torque.append(predict_cheap(engine, r.rpm, r.p_im_pa, r.charge_temp_k, r.lam, r.octane, r.spark_deg)["torque_nm"])
         margin.append(_knock_margin(engine, r.rpm, r.p_im_pa, r.charge_temp_k, r.lam, r.octane, r.spark_deg))
+        if progress and (i % stride == 0 or i + 1 == total):
+            progress(i + 1, total, {})
     out["torque_nm"] = torque
     out["knock_margin"] = margin
     return out
 
 
-def make_dataset(n: int = 2000, seed: int = 0, engine: EngineParams = EA888_GEN3) -> pd.DataFrame:
-    return simulate_targets(sample_inputs(n, seed), engine)
+def make_dataset(
+    n: int = 2000,
+    seed: int = 0,
+    engine: EngineParams = EA888_GEN3,
+    progress: Callable[[int, int, dict], None] | None = None,
+) -> pd.DataFrame:
+    return simulate_targets(sample_inputs(n, seed), engine, progress=progress)

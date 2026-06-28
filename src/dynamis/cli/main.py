@@ -80,12 +80,14 @@ def train(
     k: int = typer.Option(5, help="ensemble size"),
 ):
     """Train the surrogate ensemble on sim data and save it."""
+    from dynamis.cli.progress import Pulse
     from dynamis.model.data import make_dataset
     from dynamis.model.ensemble import DeepEnsemble
     from dynamis.model.surrogate import best_device
 
     typer.echo(f"device: {best_device()}; training k={k} on {n} sim samples...")
-    ens = DeepEnsemble(k=k).fit(make_dataset(n=n), epochs=epochs)
+    df = make_dataset(n=n, progress=Pulse("  sim data"))
+    ens = DeepEnsemble(k=k).fit(df, epochs=epochs, progress=Pulse("  training "))
     out.parent.mkdir(parents=True, exist_ok=True)
     ens.save(str(out))
     typer.echo(f"saved {out}")
@@ -100,6 +102,7 @@ def optimize(
     knock_margin: float = typer.Option(0.10, help="minimum knock margin"),
 ):
     """Optimize a WOT calibration (spark/boost/lambda) within the safety limits."""
+    from dynamis.cli.progress import Pulse
     from dynamis.model.data import make_dataset
     from dynamis.model.ensemble import DeepEnsemble
     from dynamis.optimize import SafetyLimits, optimize_sweep
@@ -109,10 +112,14 @@ def optimize(
         typer.echo(f"loaded {model}")
     else:
         typer.echo(f"{model} not found; training a quick surrogate (run `dynamis train` to persist one)...")
-        ens = DeepEnsemble(k=3).fit(make_dataset(n=1500), epochs=500)
+        df = make_dataset(n=1500, progress=Pulse("  sim data"))
+        ens = DeepEnsemble(k=3).fit(df, epochs=500, progress=Pulse("  training "))
 
     limits = SafetyLimits(knock_margin_min=knock_margin, boost_max_bar=boost_max)
-    res = optimize_sweep(ens, list(range(3000, 6801, 400)), charge_temp_c=charge_temp, octane=octane, limits=limits)
+    res = optimize_sweep(
+        ens, list(range(3000, 6801, 400)), charge_temp_c=charge_temp, octane=octane,
+        limits=limits, progress=Pulse("  optimize "),
+    )
     typer.echo(res.table.to_string(index=False))
     typer.echo(
         f"\npeak {res.peak_power_hp:.0f} hp   baseline {res.baseline_peak_hp:.0f} hp   gain +{res.gain_hp:.0f} hp"
