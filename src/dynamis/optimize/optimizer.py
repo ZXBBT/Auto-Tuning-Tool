@@ -27,6 +27,7 @@ class TuneResult:
     peak_power_hp: float
     baseline_peak_hp: float
     gain_hp: float
+    baseline_power_hp: np.ndarray | None = None  # per-rpm power of the reference calibration
 
 
 def _power_hp(torque_nm: np.ndarray, rpm: np.ndarray) -> np.ndarray:
@@ -126,4 +127,7 @@ def optimize_sweep(
 
     peak = float(power.max())
     base_peak = float(base_power.max())
-    return TuneResult(table=table, peak_power_hp=peak, baseline_peak_hp=base_peak, gain_hp=peak - base_peak)
+    return TuneResult(
+        table=table, peak_power_hp=peak, baseline_peak_hp=base_peak, gain_hp=peak - base_peak,
+        baseline_power_hp=base_power,
+    )
