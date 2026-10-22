@@ -7,6 +7,10 @@ data logs and calibration maps, learns the underlying engine physics, and propos
 **optimized calibration adjustments** to improve performance — bounded at every step
 by hard safety limits and kept human-in-the-loop.
 
+**🔗 Live demo: [tuner.dynamistuning.com](https://tuner.dynamistuning.com)**, self-hosted on a home PC
+([direct path](https://direct.dynamistuning.com) · [API docs](https://tuner.dynamistuning.com/api/docs) ·
+[how it's deployed](#web-demo)). All outputs come from an uncalibrated simulator; see Status.
+
 ## Status
 
 🟢 **v1 pipeline running on simulated data.** The full spine is built and tested —
@@ -17,7 +21,15 @@ Design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Web demo
 
-The pipeline is also served as a full-stack web app, self-hosted from a home PC:
+The pipeline is also served as a full-stack web app, self-hosted from a home PC and
+reachable two ways:
+
+| URL | Ingress path |
+|---|---|
+| **https://tuner.dynamistuning.com** | Cloudflare Tunnel. The PC dials out to Cloudflare's edge, and the home IP stays hidden |
+| **https://direct.dynamistuning.com** | Direct: DNS → home IP (kept current by DDNS) → router port forward → Caddy with a Let's Encrypt cert |
+
+> Hosted on a personal machine, so it may occasionally be offline.
 
 | | |
 |---|---|
