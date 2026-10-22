@@ -1,0 +1,25 @@
+# Path B overlay: publish HTTP/HTTPS (and HTTP/3) on all interfaces so the router's port
+# forward can reach Caddy, and keep the direct subdomain's A record pointed at this home's
+# (dynamic) public IP. Requires DOMAIN_DIRECT, ACME_EMAIL and CF_API_TOKEN in .env.
+services:
+  web:
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+  ddns:
+    image: favonia/cloudflare-ddns:1.15.1
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [all]
+    security_opt: [no-new-privileges:true]
+    environment:
+      # API token scoped to "Zone / DNS / Edit" on this one zone only
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
+      DOMAINS: ${DOMAIN_DIRECT:-}
+      # grey cloud: path B must resolve to the home IP itself, not to Cloudflare's proxy
+      PROXIED: "false"
+      IP6_PROVIDER: none
+      UPDATE_CRON: "@every 5m"

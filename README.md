@@ -15,6 +15,33 @@ Training currently runs on **simulator-generated** data; calibrating against rea
 EA888 logs (the M3 anchor) is the remaining step to make outputs trustworthy.
 Design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Web demo
+
+The pipeline is also served as a full-stack web app, self-hosted from a home PC:
+
+| | |
+|---|---|
+| ![Optimizer](docs/images/optimizer.png) | ![Live CAN telemetry](docs/images/live-can-dark.png) |
+| ![Log analysis](docs/images/log-analysis.png) | ![Physics explorer](docs/images/explorer-dark.png) |
+
+- **Log analysis.** Upload a COBB CSV. You get the WOT pull, findings (observed vs model-estimated), and channel charts.
+- **Optimizer.** The constrained optimizer runs as a background job, with live progress over **Server-Sent Events**.
+- **Physics explorer.** Sliders query the surrogate ensemble (mean ± 2σ) next to the physics model it imitates.
+- **Live CAN.** A simulated ECU streams 8-byte CAN frames over a **WebSocket** at 20 Hz. The browser decodes the
+  bit fields itself and checks each frame's **CRC-8 (SAE J1850)** and **alive counter**. Use the fault-injection
+  buttons to see both checks catch errors.
+
+**Stack:** FastAPI + uvicorn (`src/dynamis/api/`) · React + TypeScript + Vite + Recharts (`frontend/`) ·
+Caddy (static files, reverse proxy, TLS, security headers) · Docker Compose · ingress through a **Cloudflare Tunnel**
+(outbound-only, works behind NAT) *or* **direct** via router port forwarding + dynamic DNS + Let's Encrypt.
+
+```bash
+.venv/bin/dynamis train --out models/surrogate.pt   # once: the model the API serves
+docker compose up -d --build                          # -> http://localhost:8080
+```
+
+Going public (domain, tunnel, port forwarding, DNS) is covered step by step in [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+
 ## The one-paragraph idea
 
 Clean, paired `(map-change → outcome)` datasets barely exist online, so we don't try to
@@ -43,8 +70,15 @@ Python 3.10+, isolated venv. PyTorch uses the **CUDA 12.8** wheel (Blackwell / R
 python3 -m venv .venv --without-pip                       # system python may lack ensurepip
 curl -fsSL https://bootstrap.pypa.io/get-pip.py | .venv/bin/python
 .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu128   # omit for CPU-only
-.venv/bin/pip install -e ".[ml,dev]"
+.venv/bin/pip install -e ".[ml,web,dev]"
 .venv/bin/python -m pytest -q
+```
+
+Web app in development mode (hot reload; Vite proxies `/api` to uvicorn):
+
+```bash
+.venv/bin/uvicorn dynamis.api.app:create_app --factory --reload --port 8000
+cd frontend && npm ci && npm run dev                  # -> http://localhost:5173
 ```
 
 ## Usage

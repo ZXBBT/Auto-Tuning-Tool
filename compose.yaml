@@ -1,0 +1,60 @@
+# Dynamis demo stack.
+#   local only:          docker compose up -d --build              -> http://localhost:8080
+#   + Cloudflare Tunnel: docker compose --profile tunnel up -d     (needs TUNNEL_TOKEN in .env)
+#   + direct ingress:    docker compose -f compose.yaml -f compose.direct.yaml up -d
+# See deploy/DEPLOY.md.
+name: dynamis
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/api.Dockerfile
+    image: dynamis-api
+    restart: unless-stopped
+    environment:
+      DYNAMIS_TORCH_THREADS: "2"
+    volumes:
+      # trained surrogate ensemble (run `dynamis train` once); read-only in the container
+      - ./models:/app/models:ro
+    expose:
+      - "8000"
+    mem_limit: 2g
+    cpus: 2.0
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web.Dockerfile
+    image: dynamis-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DOMAIN_DIRECT: ${DOMAIN_DIRECT:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    ports:
+      # loopback only: the tunnel connector reaches Caddy over the Docker network instead
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 256m
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.4.0
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - web
+    command: tunnel --no-autoupdate run
+    environment:
+      # from .env; created in the Cloudflare Zero Trust dashboard (deploy/DEPLOY.md)
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    mem_limit: 128m
+
+volumes:
+  # Caddy's certificates and ACME account: keep them across rebuilds (Let's Encrypt rate limits)
+  caddy_data:
+  caddy_config:

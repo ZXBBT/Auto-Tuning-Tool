@@ -1,0 +1,60 @@
+# Caddy: serves the built frontend, reverse-proxies /api to the FastAPI container, and
+# terminates TLS for the direct (non-Cloudflare) ingress path.
+{
+	admin off
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+(app) {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Frame-Options DENY
+		# "?" = default only: the API docs route below sets its own, looser policy
+		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	handle /api/* {
+		# Swagger UI loads its JS/CSS from a CDN
+		header /api/docs Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://fastapi.tiangolo.com; frame-ancestors 'none'"
+		request_body {
+			max_size 6MB
+		}
+		reverse_proxy api:8000 {
+			# stream Server-Sent Events immediately instead of buffering them
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		# hashed build assets never change under the same name
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		# everything else (index.html and SPA routes) must revalidate so deploys show up at once
+		@pages not path /assets/*
+		header @pages Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Path A: Cloudflare Tunnel. cloudflared reaches this over the private Docker network and
+# TLS is terminated at Cloudflare's edge. Also published on 127.0.0.1:8080 for local use.
+:8080 {
+	import app
+}
+
+# Path B: direct ingress. The router forwards 80/443 to this machine; Caddy obtains and
+# renews a Let's Encrypt certificate for the domain automatically.
+{$DOMAIN_DIRECT:localhost} {
+	# CF-Connecting-IP is only trustworthy when Cloudflare set it; on this path it can only
+	# be a forgery (used to dodge the per-IP rate limit), so drop it.
+	request_header -CF-Connecting-IP
+	header Strict-Transport-Security "max-age=31536000"
+	import app
+}
