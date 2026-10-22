@@ -139,7 +139,7 @@ To switch path B off again, remove the `COMPOSE_FILE` line from `.env`, then run
 `docker compose up -d --remove-orphans`. That drops the published 80/443 ports and the DDNS
 updater. Then remove the router's port forwards.
 
-## 4. Before the interview
+## 4. Before a live demo
 
 - Windows **Power & sleep**: never sleep while plugged in. Docker Desktop: **Start when you
   sign in**. Every container has `restart: unless-stopped`.

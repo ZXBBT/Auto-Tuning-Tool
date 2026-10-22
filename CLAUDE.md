@@ -131,8 +131,8 @@ Done: **M0** (architecture) → **M0.5** (data feasibility) → **M1** (physics 
 **M5** (diagnostics) → **M6** (constrained optimizer) → **M7** (CLI). Plus: senior code
 audit (clean), and a live progress `Pulse` for long jobs.
 
-**Web demo (Oct 2026, for the user's embedded-software-developer job interview — role covers
-network/frontend/backend/DNS):** W1 backend API ✅, W2 frontend ✅, W3 Docker+Caddy ✅ (verified
+**Web demo (Oct 2026, public portfolio demo of the pipeline — showcases
+network/frontend/backend/DNS skills):** W1 backend API ✅, W2 frontend ✅, W3 Docker+Caddy ✅ (verified
 locally on :8080). W4: domain **dynamistuning.com** (Cloudflare). Path **B** LIVE 2026-10-22 at
 `https://direct.dynamistuning.com` (router 10.0.0.1 forwards 80/443 → PC 10.0.0.67; grey-cloud A
 record kept current by the `ddns` container; Let's Encrypt cert via HTTP-01; `.env` sets
