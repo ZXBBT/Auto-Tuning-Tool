@@ -13,8 +13,9 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		X-Frame-Options DENY
-		# "?" = default only: the API docs route below sets its own, looser policy
-		?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		# "?" = default only: the API docs route below sets its own, looser policy.
+		# cloudflareinsights: the Web Analytics beacon Cloudflare injects on the tunnel path.
+		?Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 		-Server
 	}
 
@@ -46,6 +47,8 @@
 # Path A: Cloudflare Tunnel. cloudflared reaches this over the private Docker network and
 # TLS is terminated at Cloudflare's edge. Also published on 127.0.0.1:8080 for local use.
 :8080 {
+	# visitors reach this over HTTPS at the edge; browsers ignore HSTS on plain-HTTP localhost
+	header Strict-Transport-Security "max-age=31536000"
 	import app
 }
 

@@ -48,30 +48,39 @@ registrar's nameservers to the two Cloudflare gives you, then wait for "Active".
 
 ## 2. Path A: Cloudflare Tunnel
 
-1. Cloudflare dashboard → **Zero Trust** → **Networks → Tunnels** → **Create a tunnel** →
-   type **Cloudflared**, name `dynamis`.
-2. On the "install connector" step, pick **Docker** and copy the long token after
-   `--token`. Put it in `.env` (copy `.env.example` to `.env` first):
+1. Cloudflare dashboard → **Zero Trust** (first visit: pick a team name and the Free plan) →
+   **Networks → Tunnels** → **Create a tunnel** → type **Cloudflared**, name `dynamis`.
+2. On the "install connector" step, pick **Docker** and copy only the long token after
+   `--token` (it starts with `eyJ`). Don't run the command they show: `compose.yaml` already
+   has a pinned `cloudflared` service on the same network as Caddy. Put the token in `.env`,
+   and enable the profile so plain `docker compose up -d` starts the connector:
    ```
    TUNNEL_TOKEN=eyJh...
+   COMPOSE_PROFILES=tunnel
    ```
-3. **Public hostname**: subdomain `tuner`, domain `example.com`, service type **HTTP**,
-   URL **`web:8080`**. That's the Caddy container's name on the Compose network, and
-   cloudflared runs on the same network. Cloudflare creates the DNS record for you.
-4. Start the connector:
+3. Start the connector **now**. The wizard won't let you continue until it sees the connector online:
    ```bash
-   docker compose --profile tunnel up -d
-   docker compose logs cloudflared | grep -i "registered tunnel connection"
+   docker compose up -d
+   docker compose logs cloudflared | grep "Registered tunnel connection"   # expect 4, across 2 data centers
    ```
+4. **Add route → Published application** (older UI: "Public hostname"). Don't pick private
+   network or private hostname. Use subdomain `tuner`, domain `example.com`, empty path,
+   service URL **`http://web:8080`**. `web` is Caddy's name on the Compose network, and it's
+   plain HTTP because TLS ends at Cloudflare's edge. `https://` here would cause a 502.
+   Cloudflare pushes the route to the running connector, so no restart is needed. It also
+   creates a **proxied (orange) CNAME** `tuner → <tunnel-id>.cfargotunnel.com`, which must stay orange.
 5. Check it:
    ```bash
+   docker compose logs cloudflared | grep "Updated to new configuration"
    dig +short tuner.example.com        # Cloudflare anycast IPs, not your home IP
-   curl -sI https://tuner.example.com | head -1
+   curl -sI https://tuner.example.com | grep -iE "^(HTTP|server|cf-ray)"
    ```
    Then open it on your phone **on mobile data**, so the test really comes from outside your network.
 
-WebSockets (Live CAN) and Server-Sent Events (optimizer progress) work through the
-tunnel without extra settings.
+WebSockets (Live CAN) and Server-Sent Events (optimizer progress) work through the tunnel
+without extra settings. Cloudflare injects its Web Analytics beacon into proxied HTML, and
+the CSP in `deploy/Caddyfile` allows exactly that script. Visits then show up under
+Analytics → Web Analytics.
 
 ## 3. Path B: direct through the router
 
@@ -83,8 +92,12 @@ and this path is possible.
 2. **Port forward** on the router: TCP 80 → PC:80, TCP 443 → PC:443, and UDP 443 → PC:443
    (the UDP rule is optional and enables HTTP/3). Port 80 is only needed for Let's Encrypt's HTTP
    challenge and the redirect to HTTPS.
-3. **Windows firewall.** Docker Desktop publishes container ports on the Windows host. Allow
-   them inbound (PowerShell **as Administrator**):
+3. **Windows firewall.** Docker Desktop publishes container ports on the Windows host. When
+   you first allowed Docker Desktop through the firewall, Windows usually created a
+   **"Docker Desktop Backend"** rule that allows all its ports. Check for it:
+   `Get-NetFirewallRule -DisplayName 'Docker Desktop Backend'`. That same rule is why
+   `compose.yaml` binds 8080 to 127.0.0.1: anything Docker publishes on 0.0.0.0 is reachable
+   from the LAN. Only if that rule is missing, allow the ports (PowerShell **as Administrator**):
    ```powershell
    New-NetFirewallRule -DisplayName "Dynamis HTTP/HTTPS" -Direction Inbound -Protocol TCP -LocalPort 80,443 -Action Allow
    New-NetFirewallRule -DisplayName "Dynamis HTTP/3" -Direction Inbound -Protocol UDP -LocalPort 443 -Action Allow
@@ -99,6 +112,13 @@ and this path is possible.
    The `ddns` container creates and updates the `direct` A record with your current public
    IP every 5 minutes, as **DNS only (grey cloud)**. The record must not be proxied, or
    traffic would go through Cloudflare again instead of straight to your router.
+   Watch out: a record you add in the dashboard is **proxied by default**. If you created
+   one by hand, switch it to DNS only. `dig +short direct.example.com` must print your home
+   IP, not Cloudflare's 104.x / 172.67.x addresses.
+
+   Also add `COMPOSE_FILE=compose.yaml:compose.direct.yaml` to `.env`. Plain
+   `docker compose ...` commands then include the path B services (`ddns`) without passing
+   `-f` twice.
 5. Start everything:
    ```bash
    docker compose -f compose.yaml -f compose.direct.yaml --profile tunnel up -d
@@ -106,6 +126,8 @@ and this path is possible.
    ```
    Caddy obtains a Let's Encrypt certificate for `direct.example.com` on first start and
    renews it automatically. The certificate is stored in the `caddy_data` volume.
+   "certificate obtained successfully" also proves the whole inbound path works: Let's
+   Encrypt fetched a challenge file from the internet through your router's port 80.
 6. Check from **outside** your network (phone on mobile data). Many routers don't support
    hairpin NAT, so `direct.example.com` may not load from inside your own LAN even when it
    works fine from outside.
@@ -113,8 +135,9 @@ and this path is possible.
    dig +short direct.example.com       # your home public IP
    ```
 
-To switch path B off again, run `docker compose -f compose.yaml --profile tunnel up -d`. That
-drops the published 80/443 ports and the DDNS updater. Then remove the router's port forward.
+To switch path B off again, remove the `COMPOSE_FILE` line from `.env`, then run
+`docker compose up -d --remove-orphans`. That drops the published 80/443 ports and the DDNS
+updater. Then remove the router's port forwards.
 
 ## 4. Before the interview
 

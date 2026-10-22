@@ -133,9 +133,13 @@ audit (clean), and a live progress `Pulse` for long jobs.
 
 **Web demo (Oct 2026, for the user's embedded-software-developer job interview — role covers
 network/frontend/backend/DNS):** W1 backend API ✅, W2 frontend ✅, W3 Docker+Caddy ✅ (verified
-locally on :8080). W4 public exposure pending the user's domain: path **A** Cloudflare Tunnel
-(primary, for the live demo) + path **B** direct (router port-forward, DDNS, Let's Encrypt) on a
-second subdomain — user confirmed no CGNAT. W5: README/resume bullets/demo script.
+locally on :8080). W4: domain **dynamistuning.com** (Cloudflare). Path **B** LIVE 2026-10-22 at
+`https://direct.dynamistuning.com` (router 10.0.0.1 forwards 80/443 → PC 10.0.0.67; grey-cloud A
+record kept current by the `ddns` container; Let's Encrypt cert via HTTP-01; `.env` sets
+`COMPOSE_FILE` to include `compose.direct.yaml`). Path **A** LIVE 2026-10-22 at
+`https://tuner.dynamistuning.com` (tunnel `dynamis`, route → `http://web:8080`, 4 QUIC conns
+yvr01/sea08; `.env` sets `COMPOSE_PROFILES=tunnel`). Both paths pass the Playwright UI test.
+W5 next: README/resume bullets/demo script.
 
 **Pending:**
 - **M3 proper (real-data calibration)** — the gating item. User is sourcing a real EA888
